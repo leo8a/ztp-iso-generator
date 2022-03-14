@@ -14,4 +14,3 @@ ssh_public_key="<pubkey_contents>"
 [provisioner]
 # host from where the installation is performed
 192.168.112.199 ansible_connection=ssh
-

@@ -1,0 +1,14 @@
+---
+- name: Install needed package
+  dnf:
+    name:
+      - '@container-tools'
+      - make
+    state: present
+    update_cache: yes
+
+- name: Pull latest filetranspiler container image
+  podman_image:
+    name: quay.io/lochoa/filetranspiler
+    tag: latest
+    state: present

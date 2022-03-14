@@ -1,0 +1,16 @@
+---
+- name: Generate small ISO with injected configuration
+  hosts: provisioner
+
+  tasks:
+    - include: 00_prepare_environment.yml
+      tags: prepare-environment
+      become: true
+
+    - include: 01_create_small_iso.yml
+      tags: create-small-iso
+      become: true
+
+#    - include: 03_configure_small_iso.yml
+#      tags: configure-small-iso
+#      become: true

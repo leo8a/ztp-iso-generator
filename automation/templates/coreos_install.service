@@ -1,0 +1,23 @@
+[Unit]
+After=network.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+Environment=HTTP_PROXY={{ http_proxy | default('')}}
+Environment=http_proxy={{ http_proxy | default('')}}
+Environment=HTTPS_PROXY={{ https_proxy | default('') }}
+Environment=https_proxy={{ https_proxy | default('') }}
+Environment=NO_PROXY={{ no_proxy_list | default('') }}
+Environment=no_proxy={{ no_proxy_list | default('') }}
+ExecStart=/bin/sh -c 'while ! /usr/bin/coreos-installer install \
+                                                        --copy-network \
+                                                        --insecure \
+                                                        --insecure-ignition \
+                                                        --ignition-url {{ final_ignition_url }} {{ install_device }}; \
+                      do sleep 5; \
+                      done'
+ExecStartPost=reboot
+
+[Install]
+WantedBy=multi-user.target"

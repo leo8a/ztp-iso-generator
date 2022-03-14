@@ -10,15 +10,15 @@
 
 - name: Get the script to modify ISOs
   get_url:
-      url: https://raw.githubusercontent.com/redhat-ztp/ztp-iso-generator/main/rhcos-iso/inject_config_files.sh
-      dest: "{{ script_directory.path }}/inject_config_files.sh"
-      mode: 0755
+    url: https://raw.githubusercontent.com/leo8a/ztp-iso-generator/main/hacks/rhcos-iso/inject_config_files.sh
+    dest: "{{ script_directory.path }}/inject_config_files.sh"
+    mode: '0755'
 
 - name: Get the script to generate ramdisk
   get_url:
-      url: https://raw.githubusercontent.com/redhat-ztp/ztp-iso-generator/main/rhcos-iso/ramdisk_generator.sh
-      dest: "{{ script_directory.path }}/ramdisk_generator.sh"
-      mode: 0755
+    url: https://raw.githubusercontent.com/leo8a/ztp-iso-generator/main/hacks/rhcos-iso/ramdisk_generator.sh
+    dest: "{{ script_directory.path }}/ramdisk_generator.sh"
+    mode: '0755'
 
 - name: Delete previous ignition file
   file:
@@ -94,4 +94,3 @@
 - name: Output the path for the final image
   debug:
     msg: "The final small ISO has been produced under {{ temporary_path }}/final_small_image.iso"
-
