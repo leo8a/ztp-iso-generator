@@ -1,44 +1,52 @@
-# Generates a minimal RHCOS ISO, that will pull rootfs from external source
-FINAL_ISO_PATH=$1
-RHCOS_LIVE_ISO=${2:-https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/latest/rhcos-live.x86_64.iso}
+#!/bin/bash
 
-CONFIG_PATH=$(dirname "$0")
+FINAL_ISO_PATH=$1
+RHCOS_LIVE_ISO=${2:-https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/latest/rhcos-live.x86_64.iso}
+
+
+#===============================================
+# 1) Create output folder if it does not exist #
+#===============================================
 
 if [ -z "$1" ]
   then
-    echo "Please provide the full path for final ISO"
+    echo "Please provide the full path for RHCOS minimal ISO"
     exit 1
 fi
 
-rm -rf /tmp/coreos
-rm -f $FINAL_ISO_PATH
+rm -f "$FINAL_ISO_PATH" ; mkdir -pv "$(dirname "$FINAL_ISO_PATH")"
 
-# create output folder if it does not exist
-mkdir -p $(dirname $FINAL_ISO_PATH)
 
-pushd /tmp
-mkdir -p coreos
-mkdir -p custom_coreos
+#========================================
+# 2) Download the LIVE ISO and Mount it #
+#========================================
 
-# download the LIVE iso and mount it, to remove the rootfs image
-[ -f /tmp/rhcos-live.iso ] || curl $RHCOS_LIVE_ISO -o /tmp/rhcos-live.iso
+[ -f /tmp/rhcos-live.iso ] || curl "$RHCOS_LIVE_ISO" -o /tmp/rhcos-live.iso
 
+rm -rf /tmp/coreos ; mkdir -pv /tmp/coreos
 mount -o loop /tmp/rhcos-live.iso /tmp/coreos/
 
-cp -R /tmp/coreos/* /tmp/custom_coreos/
-umount /tmp/coreos && rmdir /tmp/coreos
 
+#====================================================
+# 3) Remove the RootFS from the downloaded LIVE ISO #
+#====================================================
+
+rm -rf /tmp/custom_coreos ; mkdir -pv /tmp/custom_coreos
+
+sudo cp -R /tmp/coreos/* /tmp/custom_coreos/
 chmod -R u+w /tmp/custom_coreos
 rm -f /tmp/custom_coreos/images/pxeboot/rootfs.img
 
-# install dependencies
-dnf -y install syslinux xorriso || true
 
-# generate final ISO based on that
-pushd /tmp/custom_coreos
+#================================
+# 4) Generate Minimal RHCOS ISO #
+#================================
 
-# modify the content of cfg files
-cat <<EOF >> EFI/redhat/grub.cfg
+# 4.1) install dependencies
+dnf install -y syslinux xorriso || true
+
+# 4.2) modify content of cfg files
+cat <<EOF > /tmp/custom_coreos/EFI/redhat/grub.cfg
 set default="1"
 
 function load_video {
@@ -65,8 +73,7 @@ initrd /images/pxeboot/initrd.img
 }
 EOF
 
-
-cat <<EOF >> isolinux/isolinux.cfg
+cat <<EOF > /tmp/custom_coreos/isolinux/isolinux.cfg
 serial 0
 default vesamenu.c32
 # timeout in units of 1/10s. 50 == 5 seconds
@@ -140,6 +147,7 @@ menu separator # insert an empty line
 menu end
 EOF
 
+# 4.3) generate minimal ISO
 xorriso -as mkisofs \
   -isohybrid-mbr /usr/share/syslinux/isohdpfx.bin \
   -c isolinux/boot.cat \
@@ -151,7 +159,12 @@ xorriso -as mkisofs \
   -e images/efiboot.img \
   -no-emul-boot \
   -isohybrid-gpt-basdat \
-  -o $FINAL_ISO_PATH \
+  -o "$FINAL_ISO_PATH" \
   /tmp/custom_coreos
-popd
 
+
+#========================
+# 5) Clean up artifacts #
+#========================
+
+umount /tmp/coreos ; rmdir /tmp/coreos

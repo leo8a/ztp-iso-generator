@@ -1,3 +1,5 @@
+#!/bin/bash
+
 INITIAL_ISO_PATH=$1
 FINAL_ISO_PATH=$2
 
@@ -55,16 +57,16 @@ chown 777 /tmp/modified_iso
 
 # mount the installer iso
 echo "mount -t iso9660 -o loop $INITIAL_ISO_PATH  /mnt/custom_live_iso"
-mount -t iso9660 -o loop $INITIAL_ISO_PATH  /mnt/custom_live_iso
+mount -t iso9660 -o loop "$INITIAL_ISO_PATH"  /mnt/custom_live_iso
 
 # copy to a temporary directory
-pushd /mnt/custom_live_iso
+pushd /mnt/custom_live_iso || exit 1
 tar cf - . | (cd /tmp/modified_iso && tar xfp -)
-popd
+popd || exit 1
 
 # generate the extra ramdisk
 if [[ ! -z "${EXTRA_RAMDISK_PATH}" ]]; then
-  cp ${EXTRA_RAMDISK_PATH} /tmp/modified_iso/images/ignition_ramdisk
+  cp "${EXTRA_RAMDISK_PATH}" /tmp/modified_iso/images/ignition_ramdisk
   EXTRA_KARG_PATH_BIOS=",/images/ignition_ramdisk"
   EXTRA_KARG_PATH_UEFI=" /images/ignition_ramdisk"
 else
@@ -77,7 +79,7 @@ sed -i "\|^linux|s|$| ignition.firstboot ignition.platform.id=metal ignition.con
 sed -i "\|^initrd|s|$|${EXTRA_KARG_PATH_UEFI}|" /tmp/modified_iso/EFI/redhat/grub.cfg
 sed -i "\|^  append|s|$|${EXTRA_KARG_PATH_BIOS} ignition.firstboot ignition.platform.id=metal ignition.config.url=${IGNITION_PATH} coreos.live.rootfs_url=${ROOTFS_PATH} ${KERNEL_ARGUMENTS}|" /tmp/modified_iso/isolinux/isolinux.cfg
 # rebuild ISO
-pushd /tmp/modified_iso
+pushd /tmp/modified_iso || exit 1
 
 xorriso -as mkisofs \
   -isohybrid-mbr /usr/share/syslinux/isohdpfx.bin \
@@ -90,12 +92,11 @@ xorriso -as mkisofs \
   -e images/efiboot.img \
   -no-emul-boot \
   -isohybrid-gpt-basdat \
-  -o $FINAL_ISO_PATH \
+  -o "$FINAL_ISO_PATH" \
   /tmp/modified_iso
-popd
+popd || exit 1
 
 # clean
 umount /mnt/custom_live_iso
 rm -rf /mnt/custom_live_iso
 rm -rf /tmp/modified_iso
-

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 INITIAL_ISO_PATH=$1
 IGNITION_PATH=$2
 FINAL_ISO_PATH=$3
@@ -42,26 +44,25 @@ chown 777 /tmp/modified_iso || true
 
 # mount the installer iso
 echo "mount -t iso9660 -o loop $INITIAL_ISO_PATH  /mnt/custom_live_iso"
-mount -t iso9660 -o loop $INITIAL_ISO_PATH  /mnt/custom_live_iso
+mount -t iso9660 -o loop "$INITIAL_ISO_PATH"  /mnt/custom_live_iso
 
 # copy to a temporary directory
-pushd /mnt/custom_live_iso
+pushd /mnt/custom_live_iso || exit 1
 tar cf - . | (cd /tmp/modified_iso && tar xfp -)
-popd
+popd || exit 1
 
 # generate the extra ramdisk
-bash $CONFIG_PATH/ramdisk_generator.sh $IGNITION_PATH /tmp/modified_iso/images/ignition_ramdisk
+bash "$CONFIG_PATH"/ramdisk_generator.sh "$IGNITION_PATH" /tmp/modified_iso/images/ignition_ramdisk
 
 # append parameter to isolinux.cfg
 sed -i "/initrd=.*/c\  append initrd=/images/initramfs.img,\/images\/ignition_ramdisk nomodeset" /tmp/modified_iso/isolinux/isolinux.cfg
 
 # rebuild ISO
-pushd /tmp/modified_iso
-mkisofs -v -l -r -J -o $FINAL_ISO_PATH -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table .
-popd
+pushd /tmp/modified_iso || exit 1
+mkisofs -v -l -r -J -o "$FINAL_ISO_PATH" -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table .
+popd || exit 1
 
 # clean
 umount /mnt/custom_live_iso
 rm -rf /mnt/custom_live_iso
 rm -rf /tmp/modified_iso
-

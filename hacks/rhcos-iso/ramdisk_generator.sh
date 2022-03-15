@@ -1,3 +1,5 @@
+#!/bin/bash
+
 IGNITION_FOLDER=$1
 RAMDISK_PATH=$2
 
@@ -14,6 +16,7 @@ if [ -z "$2" ]
 fi
 
 echo "Building ramdisk $RAMDISK_PATH ..."
-pushd $IGNITION_FOLDER
-find . | sed 's/^[.]\///' | cpio -o -H newc -R root --no-absolute-filenames > $RAMDISK_PATH
-popd
+
+pushd "$IGNITION_FOLDER" || exit 1
+find . | sed 's/^[.]\///' | cpio -o -H newc -R root --no-absolute-filenames > "$RAMDISK_PATH"
+popd || exit 1
