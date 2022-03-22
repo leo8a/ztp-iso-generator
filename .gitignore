@@ -5,3 +5,4 @@ saas_discovery_image
 # Files
 hosts.ini
 kubeconfig
+*.iso
